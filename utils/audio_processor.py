@@ -7,20 +7,14 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 
 def download_youtube_audio(url: str) -> str:
-    """YouTube se audio download karke Video Title ke naam se `.wav` format me save karta hai."""
     output_template = os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s")
 
     ydl_opts = {
         "format": "bestaudio/best",
         "outtmpl": output_template,
-        "restrictfilenames": True,  # Special characters aur spaces ko Windows-safe banata hai
-        "nopart": True,  # Direct download karega, `.part` rename issue nahi aayega
-        "overwrites": True,  # Purani file ho toh overwrite karega
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["web", "android"]
-            }
-        },
+        "restrictfilenames": True,
+        "nopart": True,
+        "overwrites": True,
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
@@ -35,27 +29,25 @@ def download_youtube_audio(url: str) -> str:
         info = ydl.extract_info(url, download=True)
         filename = ydl.prepare_filename(info)
         base, _ = os.path.splitext(filename)
-        wav_filename = f"{base}.wav"
-        return wav_filename
+        return f"{base}.wav"
 
 
 def convert_to_wav(input_path: str) -> str:
-    """Local audio/video ko 16kHz Mono WAV format me convert karta hai."""
     if not os.path.exists(input_path):
         raise FileNotFoundError(f"File nahi mili: {input_path}")
 
-    output_path = os.path.splitext(input_path)[0] + "_processed.wav"
+    # Don't re-process if file is already processed WAV
+    if input_path.endswith("_processed.wav"):
+        return input_path
 
-    # Audio load & process (Mono 1-channel, 16kHz sample rate)
+    output_path = os.path.splitext(input_path)[0] + "_processed.wav"
     audio = AudioSegment.from_file(input_path)
     audio = audio.set_channels(1).set_frame_rate(16000)
-
     audio.export(output_path, format="wav")
     return output_path
 
 
 def chunk_audio(wav_path: str, chunk_minutes: int = 10) -> list:
-    """Badi WAV file ko chhote chunks (default: 10 minutes) me split karta hai."""
     if not os.path.exists(wav_path):
         raise FileNotFoundError(f"File nahi mili: {wav_path}")
 
@@ -75,7 +67,6 @@ def chunk_audio(wav_path: str, chunk_minutes: int = 10) -> list:
 
 
 def process_input(source: str) -> list:
-    """Input URL ya Local File Path ko detect karke audio download, convert aur chunk karta hai."""
     if source.startswith("http://") or source.startswith("https://"):
         print("Detected YouTube URL. Downloading audio...")
         wav_path = download_youtube_audio(source)
@@ -87,5 +78,3 @@ def process_input(source: str) -> list:
     chunks = chunk_audio(wav_path)
     print(f"Audio ready — {len(chunks)} chunk(s) created.")
     return chunks
-
-
