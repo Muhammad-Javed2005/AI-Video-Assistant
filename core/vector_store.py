@@ -10,20 +10,16 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 
 def get_embedding():
-    """Initializes HuggingFace sentence transformers embeddings model."""
+    """Initializes HuggingFace sentence transformer embeddings locally."""
     return HuggingFaceEmbeddings(
         model_name=EMBEDDING_MODEL, model_kwargs={"device": "cpu"}
     )
 
 
 def build_vector_store(transcript: str) -> Chroma:
-    """Splits transcript into chunks and creates persistent Chroma vector store."""
+    """Splits transcript and stores vectors persistently in Chroma DB."""
     print("Building vector store...")
-
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500, chunk_overlap=50
-    )
-
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_text(transcript)
 
     docs = [
@@ -38,23 +34,21 @@ def build_vector_store(transcript: str) -> Chroma:
         collection_name=COLLECTION_NAME,
         persist_directory=CHROMA_DIR,
     )
-
     return vector_store
 
 
 def load_vector_store() -> Chroma:
     """Loads existing persistent Chroma vector database."""
     embeddings = get_embedding()
-    vector_store = Chroma(
+    return Chroma(
         collection_name=COLLECTION_NAME,
         embedding_function=embeddings,
         persist_directory=CHROMA_DIR,
     )
-    return vector_store
 
 
 def get_retriever(vector_store: Chroma, k: int = 4):
-    """Returns vector store retriever instance for similarity search."""
+    """Returns vector store retriever instance."""
     return vector_store.as_retriever(
         search_type="similarity", search_kwargs={"k": k}
     )
