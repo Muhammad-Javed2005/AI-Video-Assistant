@@ -18,16 +18,13 @@ def load_whisper_model():
 
 def transcribe_chunk_whisper(chunk_path: str, force_english: bool = True) -> str:
     model = load_whisper_model()
-
-    # Agar force_english True hai, toh task='translate' use hoga
-    # Ye Hindi/Urdu audio ko sun kar direct English text generate karta hai
     task_type = "translate" if force_english else "transcribe"
 
     segments, info = model.transcribe(
         chunk_path,
         task=task_type,
         beam_size=5,
-        vad_filter=True,  # Blank parts / noise ko skip karega
+        vad_filter=True,  # Blank/silent noise auto-skip
     )
 
     text_list = [segment.text for segment in segments]
@@ -36,17 +33,13 @@ def transcribe_chunk_whisper(chunk_path: str, force_english: bool = True) -> str
 
 def transcribe_all(chunks: list, language: str = "english") -> str:
     full_transcript = []
-
-    print("\n--- Starting English Translation & Transcription [Faster-Whisper] ---")
+    print("\n--- Starting Audio Transcription [Faster-Whisper] ---")
 
     for i, chunk in enumerate(chunks):
-        print(f"\n[+] Processing Chunk {i + 1}/{len(chunks)} ({chunk})...")
-
-        # Always set force_english=True to ensure final text is in English
+        print(f"[+] Processing Chunk {i + 1}/{len(chunks)} ({chunk})...")
         text = transcribe_chunk_whisper(chunk, force_english=True)
-
         print(f"[✔] Chunk {i + 1} Completed!")
         full_transcript.append(text)
 
-    print("\n[🎉] All Chunks Transcribed & Translated to English Successfully!")
+    print("\n[🎉] All Chunks Transcribed Successfully!")
     return "\n\n".join(full_transcript)
